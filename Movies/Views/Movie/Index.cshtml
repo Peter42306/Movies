@@ -1,0 +1,87 @@
+﻿@model IEnumerable<Movies.Models.Movie>
+
+@* @model StudentsMVC.Models.Movie
+должна быть замена на
+@model IEnumerable<StudentsMVC.Models.Movie>
+ *@
+
+@{
+    ViewData["Title"] = "Index";
+    Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<div style="padding-top:30px; margin-bottom:20px;">
+    <h1 class="text-lg-center; text-muted;">Это страница Views/Movie/Index</h1>
+    <hr />
+    <h2>Информация о 10 лучших фильмах</h2>
+
+    @* Url.Action - это метод Razor, который генерирует URL для указанного действия контроллера.
+    Он принимает два параметра: имя действия и имя контроллера.
+    В данном случае, "Create" - это имя действия, а "Movie" - имя контроллера
+    *@
+
+    <div style="margin-bottom:10px">
+        <a href="@Url.Action("Create","Movie")" class="btn btn-primary">Добавить фильм</a>
+    </div>
+
+</div>
+
+
+@* <p>
+    <a asp-action="Create">Create New</a>
+</p> *@
+
+<div class="row">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-2">
+            <div class="card" style="margin-bottom:10px;">
+                <img src="@item.PosterPath" alt="@item.Title" class="card-img-top" />
+                <div class="card-body">
+                    <div class="card-title" style="white-space:normal; margin-bottom:10px">
+                        @Html.DisplayFor(modelItem => item.Title)
+                    </div>
+                    <div style="margin-bottom:10px">
+                        <a href="@Url.Action("Edit","Movie",new{id=item.Id})" class="btn btn-secondary">Редактировать</a>
+                    </div>
+                    <div style="margin-bottom:10px">
+                        <a href="@Url.Action("Details","Movie",new{id=item.Id})" class="btn btn-secondary">Детали</a>
+                    </div>
+                    <div style="margin-bottom:10px">
+                        <a href="@Url.Action("Delete","Movie",new{id=item.Id})" class="btn btn-danger">Удалить</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+
+
+
+
+@* <div style="padding-top:30px">
+    <h3>Информация о 10 лучших фильмах</h3>
+    <table class="table">
+        <tr>
+            <td><p>Название филма</p></td>
+            <td><p>Режисёр</p></td>
+            <td><p>Жанр</p></td>
+            <td><p>Год выпуска</p></td>
+            <td><p>Краткое описание</p></td>
+            <td><p>Фото</p></td>
+        </tr>
+        @foreach (var movie in ViewBag.Movies)
+        {
+            <tr>
+                <td><p>@movie.Title</p></td>
+                <td><p>@movie.Director</p></td>
+                <td><p>@movie.Genre</p></td>
+                <td><p>@movie.ReleaseYear</p></td>
+                <td><p>@movie.Description</p></td>
+                <td><img src="@movie.PosterPath" alt="Movie Poster" width="250" /></td>
+            </tr>
+        }
+    </table>
+</div> *@

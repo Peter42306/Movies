@@ -1,0 +1,109 @@
+﻿@model Movies.Models.Movie
+
+@{
+	ViewData["Title"] = "Create";
+	Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<div style="padding-top:30px; margin-bottom:20px;">
+	<h1 class="text-lg-center; text-muted;">Это страница Views/Movie/Create</h1>
+	<hr />
+	<div class="row">
+		<div class="col-md-4">
+			<form asp-action="Create" method="post" enctype="multipart/form-data">
+				<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+				<div class="form-group">
+					<label asp-for="Title" class="control-label">Название фильма</label>
+					<input asp-for="Title" class="form-control" />
+					<span asp-validation-for="Title" class="text-danger"></span>
+				</div>
+				<div class="form-group">
+					<label asp-for="Director" class="control-label">Режиссёр</label>
+					<input asp-for="Director" class="form-control" />
+					<span asp-validation-for="Director" class="text-danger"></span>
+				</div>
+				<div class="form-group">
+					<label asp-for="Genre" class="control-label">Жанр</label>
+					<input asp-for="Genre" class="form-control" />
+					<span asp-validation-for="Genre" class="text-danger"></span>
+				</div>
+				<div class="form-group">
+					<label asp-for="ReleaseYear" class="control-label">Год выхода</label>
+					<input asp-for="ReleaseYear" class="form-control" />
+					<span asp-validation-for="ReleaseYear" class="text-danger"></span>
+				</div>
+				<div class="form-group">
+					<label asp-for="Description" class="control-label">Описание</label>
+					<input asp-for="Description" class="form-control" />
+					<span asp-validation-for="Description" class="text-danger"></span>
+				</div>
+
+				@* <div asp-action="AddFile" asp-controller="Movie" method="post" enctype="multipart/form-data">
+				<input type="file" name="uploadedFile" style="margin-top:20px" /><br />
+				<input type="submit" value="Добавить постер" style="margin-top:20px" />
+				</div> *@
+
+
+				<div class="form-group">
+					<label asp-for="PosterPath" class="control-label">Постер</label>
+					<input asp-for="PosterPath" type="file" name="uploadedFile" class="form-control" />
+					<span asp-validation-for="PosterPath" class="text-danger"></span>
+				</div>
+				<div class="form-group">
+					<input type="submit" value="Сохранить" class="btn btn-danger" style="margin-top:20px" />
+					@* <button type="submit" class="btn btn-danger" style="margin-top:20px">Добавить фильм</button> *@
+				</div>
+
+
+			</form>
+			<div class="form-group">
+				<a href="@Url.Action("Index","Movie")" class="btn btn-primary" style="margin-top:20px">Вернуться на домашнюю страницу</a>
+				@* <a asp-action="Index" class="btn btn-primary" style="margin-top:20px">Вернуться на домашнюю страницу</a> *@
+			</div>
+			@* <form asp-action="AddFile" asp-controller="Movie" method="post" enctype="multipart/form-data">
+			<input type="file" name="uploadedFile" style="margin-top:20px" /><br />
+			<input type="submit" value="Добавить постер" style="margin-top:20px" />
+			</form> *@
+
+			@* <h5>Выбранный файл</h5>
+			@if(Model != null){
+
+			<p>
+			<img src="@Url.Content(Model.PosterPath)" style="width:1000px" />
+			</p>
+			} *@
+
+
+			<div class="row">
+
+
+
+				@* <div class="col-md-6">
+				<div class="card">
+				<img src="@Url.Content(Model.PosterPath)" alt="Movie Poster" class="card-img-top" />
+				</div>
+				</div>
+				<div class="col-md-6">
+				<table class="table">
+				<tr>
+				<td>Название фильма</td>
+				<td>@Model.Title</td>
+				</tr>
+				<tr>
+				<td>Жанр</td>
+				<td>@Model.Genre</td>
+				</tr>
+				<tr>
+				<td>Год выпуска</td>
+				<td>@Model.ReleaseYear</td>
+				</tr>
+				<tr>
+				<td>Краткое описание</td>
+				<td>@Model.Description</td>
+				</tr>
+				</table>
+				</div> *@
+			</div>
+		</div>
+	</div>
+</div>

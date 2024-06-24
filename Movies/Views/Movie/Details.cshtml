@@ -1,0 +1,46 @@
+﻿@model Movies.Models.Movie
+
+@{
+	ViewData["Title"] = "Details";
+	Layout = "/Views/Shared/_Layout.cshtml";
+}
+
+<div style="padding-top:30px; margin-bottom:20px;">
+	<h1 class="text-lg-center; text-muted;">Это страница Views/Movie/Details</h1>
+	<hr />
+	<div class="row">
+		<div class="col-md-6">
+			<div class="card">
+				<img src="@Url.Content(Model.PosterPath)" alt="Movie Poster" class="card-img-top" />
+			</div>
+		</div>
+		<div class="col-md-6">
+			<table class="table">
+				<tr>
+					<td>Название фильма</td>
+					<td>@Model.Title</td>
+				</tr>
+				<tr>
+					<td>Режиссёр</td>
+					<td>@Model.Director</td>
+				</tr>
+				<tr>
+					<td>Жанр</td>
+					<td>@Model.Genre</td>
+				</tr>
+				<tr>
+					<td>Год выпуска</td>
+					<td>@Model.ReleaseYear</td>
+				</tr>
+				<tr>
+					<td>Краткое описание</td>
+					<td>@Model.Description</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+	<div>
+		<a href="@Url.Action("Index","Movie")" class="btn btn-primary" style="margin-top:20px">Вернуться на домашнюю страницу</a>
+		@* <a asp-action="Index" class="btn btn-primary" style="margin-top:20px">Вернуться на домашнюю страницу</a> *@
+	</div>
+</div>
