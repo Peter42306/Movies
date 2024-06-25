@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace Movies.Models
 {
-    public class MovieContext:DbContext
+    public class MovieContext : DbContext
     {
         // Набор данных фильмов
         public DbSet<Movie> Movies { get; set; }

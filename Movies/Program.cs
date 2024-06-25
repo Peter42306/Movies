@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Movies.Models;
+using Movies.Repository;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,8 @@ builder.Services.AddDbContext<MovieContext>(options => options.UseSqlServer(conn
 
 // Добавляем сервисы MVC
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddScoped<IRepository,MovieRepository>();
 
 var app = builder.Build();
 

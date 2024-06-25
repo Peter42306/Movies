@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Movies.Models;
+using Movies.Repository;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace Movies.Controllers
 {
@@ -9,15 +12,24 @@ namespace Movies.Controllers
         ///////////////////////////////////////////////////////////////////////////////////////////
 
         // Объявление контекста базы данных фильмов
-        MovieContext _movieContext;
+        //MovieContext _movieContext;
 
         // IWebHostEnvironment предоставляет информацию об окружении, в котором запущено приложение
         IWebHostEnvironment _webHostEnvironment;
 
-        // Внедряем ссылки через конструктор
-        public MovieController(MovieContext movieContext, IWebHostEnvironment webHostEnvironment)
+        IRepository _repository;
+
+
+        //// Внедряем ссылки через конструктор
+        //public MovieController(MovieContext movieContext, IWebHostEnvironment webHostEnvironment)
+        //{
+        //    _movieContext = movieContext;
+        //    _webHostEnvironment = webHostEnvironment;
+        //}
+
+        public MovieController(IRepository repository, IWebHostEnvironment webHostEnvironment)
         {
-            _movieContext = movieContext;
+            _repository = repository;
             _webHostEnvironment = webHostEnvironment;
         }
 
@@ -25,8 +37,11 @@ namespace Movies.Controllers
 
         // GET запрос для отображения всех фильмов в списке
         public async Task<IActionResult> Index()
-        {            
-            return View(await _movieContext.Movies.ToArrayAsync());
+        {
+            var model = await _repository.GetAll();
+            return View(model);
+
+            //return View(await _movieContext.Movies.ToArrayAsync());
         }
 
         ///////////////////////////////////////////////////////////////////////////////////////////
@@ -34,12 +49,12 @@ namespace Movies.Controllers
         // GET запрос для отображения деталей конкретного выбранного фильма
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
+            if (id == null || await _repository.GetAll() == null)
             {
                 return NotFound();
             }
 
-            var movie = await _movieContext.Movies.FirstOrDefaultAsync(item => item.Id == id);
+            var movie = await _repository.GetById((int)id);
 
             if (movie == null)
             {
@@ -47,6 +62,20 @@ namespace Movies.Controllers
             }
 
             return View(movie);
+
+            //if (id == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //var movie = await _movieContext.Movies.FirstOrDefaultAsync(item => item.Id == id);
+
+            //if (movie == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //return View(movie);
         }
 
         ///////////////////////////////////////////////////////////////////////////////////////////
@@ -73,25 +102,59 @@ namespace Movies.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Title,Director,Genre,ReleaseYear,Description")] Movie movie, IFormFile uploadedFile)
         {
+            
             if (ModelState.IsValid)
             {
                 if (uploadedFile != null && uploadedFile.Length > 0)
                 {
+
+
+                    // Путь к папке, где будут храниться изображения
                     string uploadedFolder = Path.Combine(_webHostEnvironment.WebRootPath, "Image");
+
+                    // Генерируем новое уникальное имя файла для изображения
                     string newFileNameGenerated = Guid.NewGuid().ToString() + "_" + uploadedFile.FileName;
+
+                    // Полный путь к файлу на сервере
                     string filePath = Path.Combine(uploadedFolder, newFileNameGenerated);
 
+                    
+                    // Сохраняем файл на сервере
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        await uploadedFile.CopyToAsync(fileStream);
+						// Load the image
+						using (var image = await Image.LoadAsync(uploadedFile.OpenReadStream()))
+						{
+							// Resize the image to a maximum width and height of 800px
+							image.Mutate(x => x.Resize(new ResizeOptions
+							{
+								Mode = ResizeMode.Max,
+								Size = new Size(600, 600)
+								//Size = new Size(image.Width, image.Height)
+							}));
+
+							await image.SaveAsPngAsync(fileStream);
+						}
+
+						//await uploadedFile.CopyToAsync(fileStream);						
                     }
+
+                    // Устанавливаем путь к изображению в объекте фильма
                     movie.PosterPath = "/Image/" + newFileNameGenerated;
                 }
-                _movieContext.Add(movie);
-                await _movieContext.SaveChangesAsync(); // синхронизация с БД
+
+                // Добавляем фильм в репозиторий
+                await _repository.Create(movie);
+
+                // Сохраняем изменения в базе данных
+                await _repository.Save();
+
+                // Перенаправляем на страницу списка фильмов
                 return RedirectToAction(nameof(Index));
             }
-            return View(movie);
+
+            // Если модель не валидна, возвращаем представление с текущими данными фильма
+            return View(movie);            
         }
 
 
@@ -175,12 +238,12 @@ namespace Movies.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
+            if (id == null || await _repository.GetAll() == null)
             {
                 return NotFound();
             }
 
-            var movie = await _movieContext.Movies.FindAsync(id);
+            var movie = await _repository.GetById((int)id);
 
             if (movie == null)
             {
@@ -188,6 +251,21 @@ namespace Movies.Controllers
             }
 
             return View(movie);
+
+
+            //if (id == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //var movie = await _movieContext.Movies.FindAsync(id);
+
+            //if (movie == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //return View(movie);
         }
 
 
@@ -211,17 +289,57 @@ namespace Movies.Controllers
 
                     using (var fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        await uploadedFile.CopyToAsync(fileStream);
+						// Load the image
+						using (var image=await Image.LoadAsync(uploadedFile.OpenReadStream()))
+                        {
+                            // Resize the image to a maximum width and height of 800px
+                            image.Mutate(x => x.Resize(new ResizeOptions
+                            {
+                                Mode = ResizeMode.Max,
+								Size = new Size(600,600)
+								//Size = new Size(image.Width, image.Height)
+							}));
+
+                            await image.SaveAsPngAsync(fileStream);
+						}
+
+						//await uploadedFile.CopyToAsync(fileStream);
                     }
 
-                    movie.PosterPath = "/Image/" + newFileNameGenerated;
-                }
-
-                _movieContext.Update(movie);
-                await _movieContext.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                    movie.PosterPath = "/Image/" + newFileNameGenerated;                                        
+                }                
+                    _repository.Update(movie);
+                    await _repository.Save();
+                    return RedirectToAction("Index", "Movie");
             }
             return View(movie);
+
+            //if (Id != movie.Id)
+            //{
+            //    return NotFound();
+            //}
+
+            //if (ModelState.IsValid)
+            //{
+            //    if (uploadedFile != null && uploadedFile.Length > 0)
+            //    {
+            //        string uploadedFolder = Path.Combine(_webHostEnvironment.WebRootPath, "Image");
+            //        string newFileNameGenerated = Guid.NewGuid().ToString() + "_" + uploadedFile.FileName;
+            //        string filePath = Path.Combine(uploadedFolder, newFileNameGenerated);
+
+            //        using (var fileStream = new FileStream(filePath, FileMode.Create))
+            //        {
+            //            await uploadedFile.CopyToAsync(fileStream);
+            //        }
+
+            //        movie.PosterPath = "/Image/" + newFileNameGenerated;
+            //    }
+
+            //    _movieContext.Update(movie);
+            //    await _movieContext.SaveChangesAsync();
+            //    return RedirectToAction(nameof(Index));
+            //}
+            //return View(movie);
         }
 
 
@@ -267,18 +385,32 @@ namespace Movies.Controllers
         [HttpGet]
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null)
+            if (id == null || await _repository.GetAll() == null)
             {
                 return NotFound();
             }
 
-            var movie = await _movieContext.Movies.FirstOrDefaultAsync(item => item.Id == id);
+            //var movie = await  _movieContext.Movies.FirstOrDefaultAsync(item => item.Id == id);
+            var movie = await _repository.GetById((int)id);
 
             if (movie == null)
             {
                 return NotFound();
             }
             return View(movie);
+
+            //if (id == null)
+            //{
+            //    return NotFound();
+            //}
+
+            //var movie = await _movieContext.Movies.FirstOrDefaultAsync(item => item.Id == id);
+
+            //if (movie == null)
+            //{
+            //    return NotFound();
+            //}
+            //return View(movie);
         }
 
         // POST запрос для удаления фильма
@@ -286,25 +418,47 @@ namespace Movies.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id) // почему пропало подчёркивание когда я написал return RedirectToAction(nameof(Index));
         {
-            var movie = await _movieContext.Movies.FindAsync(id);
+            if (await _repository.GetAll() == null)
+            {
+                return Problem("Entity set 'MovieContext' is null");
+            }
+
+            var movie = await _repository.GetById(id);
 
             if (movie != null)
             {
-                _movieContext.Movies.Remove(movie);
+                //_movieContext.Movies.Remove(movie);
+                _repository.Delete(id);
             }
 
-            await _movieContext.SaveChangesAsync();
-
+            //await _movieContext.SaveChangesAsync();
+            await _repository.Save();
             return RedirectToAction(nameof(Index));
+
+
+            //var movie = await _movieContext.Movies.FindAsync(id);
+
+            //if (movie != null)
+            //{
+            //    _movieContext.Movies.Remove(movie);
+            //}
+
+            //await _movieContext.SaveChangesAsync();
+
+            //return RedirectToAction(nameof(Index));
+
         }
 
 
         ///////////////////////////////////////////////////////////////////////////////////////////
 
         // Вспомогательный метод для проверки существования фильма
-        private bool MovieExists(int id)
+        private async Task<bool> MovieExists(int id)
         {
-            return _movieContext.Movies.Any(item => item.Id == id);
+            List<Movie> list = await _repository.GetAll();
+            return (list?.Any(m => m.Id == id)).GetValueOrDefault();
+
+            //return _movieContext.Movies.Any(item => item.Id == id);
         }
 
         //// Действие (action) для отображения списка фильмов
