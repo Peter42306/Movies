@@ -2,12 +2,12 @@
 
 namespace Movies.Repository
 {
-    public interface IRepository
+    public interface IRepository<T>
     {
-        Task<List<Movie>> GetAll();
-        Task<Movie> GetById(int id);
-        Task Create(Movie movie);
-        void Update(Movie movie);
+        Task<List<T>> GetAll();
+        Task<T> GetById(int id);
+        Task Create(T entity);
+        void Update(T entity);
         Task Delete(int id);
         Task Save();
     }

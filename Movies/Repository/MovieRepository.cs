@@ -3,7 +3,7 @@ using Movies.Models;
 
 namespace Movies.Repository
 {
-    public class MovieRepository:IRepository
+    public class MovieRepository : IRepository<Movie>
     {
         private readonly MovieContext _context;
 

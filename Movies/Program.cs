@@ -14,7 +14,7 @@ builder.Services.AddDbContext<MovieContext>(options => options.UseSqlServer(conn
 // Добавляем сервисы MVC
 builder.Services.AddControllersWithViews();
 
-builder.Services.AddScoped<IRepository,MovieRepository>();
+builder.Services.AddScoped<IRepository<Movie>,MovieRepository>();
 
 var app = builder.Build();
 
