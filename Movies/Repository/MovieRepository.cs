@@ -29,6 +29,7 @@ namespace Movies.Repository
 
         public void Update(Movie movie)
         {
+            //_context.Movies.Update(movie);
             _context.Entry(movie).State = EntityState.Modified;
         }
 
