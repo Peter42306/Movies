@@ -194,97 +194,218 @@ namespace Movies.Controllers
         }
 
 
-        //работает частично
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int Id, [Bind("Id,Title,Director,Genre,ReleaseYear,PosterPath,Description")] Movie movie, IFormFile? uploadedFile)
-        //public async Task<IActionResult> Edit(int Id, [Bind("Id,Title,Director,Genre,ReleaseYear,Description")] Movie movie)
         {
-            //var existingMovieById = await _repository.GetById((int)Id);
-
-            
-
-            //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before movie: {movie.PosterPath}");
-            //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie {movie.Id} {movie.Title} {movie.Director} {movie.Description} {movie.PosterPath}");            
-            //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before existingMovieById {existingMovieById.PosterPath}");
-            //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie {existingMovieById.Id} {existingMovieById.Title} {existingMovieById.Director} {existingMovieById.Description} {existingMovieById.PosterPath}");
-            //Console.WriteLine($"!!!!!!!!!!!!!! movie path before {existingPoster}");
-            //Console.WriteLine($"!!!!!!!!!!!!!! movie path before {movie.PosterPath}");
-            //Console.WriteLine($"!!!!!!!!!!!!!! movie path before {uploadedFile.Name}");
-
             if (Id != movie.Id)
             {
                 return NotFound();
             }
 
-
-            if (uploadedFile != null && uploadedFile.Length > 0)
+            if (!ModelState.IsValid)
             {
+                return View(movie);
+            }
 
-                // Путь к папке, где будут храниться изображения
-                string uploadedFolder = Path.Combine(_webHostEnvironment.WebRootPath, "Image");
-
-                // Генерируем новое уникальное имя файла для изображения
-                string newFileNameGenerated = Guid.NewGuid().ToString() + "_" + uploadedFile.FileName;
-
-                // Полный путь к файлу на сервере
-                string filePath = Path.Combine(uploadedFolder, newFileNameGenerated);
-
-
-                // Сохраняем файл на сервере
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
+            try
+            {
+                // Fetch the existing movie from the database
+                var existingMovie = await _repository.GetById(Id);
+                if (existingMovie == null)
                 {
-                    // Load the image
-                    using (var image = await Image.LoadAsync(uploadedFile.OpenReadStream()))
-                    {
-                        // Resize the image to a maximum width and height of 800px
-                        image.Mutate(x => x.Resize(new ResizeOptions
-                        {
-                            Mode = ResizeMode.Max,
-                            Size = new Size(600, 600)
-                            //Size = new Size(image.Width, image.Height)
-                        }));
-
-                        await image.SaveAsPngAsync(fileStream);
-                    }
-
-                    await uploadedFile.CopyToAsync(fileStream);						
+                    return NotFound();
                 }
 
-                // Устанавливаем путь к изображению в объекте фильма
-                movie.PosterPath = "/Image/" + newFileNameGenerated;
+                // Update only the properties that are changed
+                
+                existingMovie.Title = movie.Title;
+                existingMovie.Director = movie.Director;
+                existingMovie.Genre = movie.Genre;
+                existingMovie.ReleaseYear = movie.ReleaseYear;
+                existingMovie.Description = movie.Description;
+                
 
-                //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before in if {movie.PosterPath}");
-                //await Console.Out.WriteLineAsync($"movie {movie.Id} {movie.Title} {movie.Director} {movie.Description} {movie.PosterPath}");
+                if (uploadedFile != null && uploadedFile.Length > 0)
+                {
+                    // Process the uploaded file and get the new file path
+                    existingMovie.PosterPath=await UploadingFile(uploadedFile);
+                }
+
+                // Update the movie in the repository
+                _repository.Update(existingMovie);
+
+                // Save the changes to the database
+                await _repository.Save();
+
+                return RedirectToAction("Index", "Movie");
             }
-            else
+            catch (DbUpdateConcurrencyException)
             {
-
-                // Если изображение не было загружено, сохраняем существующий путь к изображению
-                var existingMovie = await _repository.GetById(Id);                
-                    
-                
-                
-                movie.PosterPath = existingMovie.PosterPath;
-                
-
-
-
-                //movie.PosterPath = "/Image/" + movie.PosterPath;
-
-                //movie.PosterPath = "/Image/" + existingMovieById.PosterPath;
-                //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before in else {movie.PosterPath}");
-                //await Console.Out.WriteLineAsync($"movie {movie.Id} {movie.Title} {movie.Director} {movie.Description} {movie.PosterPath}");
+                if (!await MovieExists(movie.Id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
             }
 
-            // Добавляем фильм в репозиторий
-            _repository.Update(movie);
-
-            // Сохраняем изменения в базе данных
-            await _repository.Save();
-
-            return RedirectToAction("Index", "Movie");
+            //return View(movie);
         }
+
+        private async Task<string> UploadingFile(IFormFile uploadedFile)
+        {
+            // Path to the folder where images will be stored
+            string uploadedFolder = Path.Combine(_webHostEnvironment.WebRootPath, "Image");
+
+            // Generate a new unique file name for the image
+            string newFileNameGenerated = Guid.NewGuid().ToString() + "_" + uploadedFile.FileName;
+
+            // Full path to the file on the server
+            string filePath = Path.Combine(uploadedFolder, newFileNameGenerated);
+
+            // Save the file on the server
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                // Load the image
+                using (var image = await Image.LoadAsync(uploadedFile.OpenReadStream()))
+                {
+                    // Resize the image to a maximum width and height of 600px
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Mode = ResizeMode.Max,
+                        Size = new Size(600, 600)
+                    }));
+
+                    await image.SaveAsPngAsync(fileStream);
+                }
+            }
+
+            // Set the path to the image in the movie object
+            return "/Image/" + newFileNameGenerated;
+        }
+
+        ////работает частично
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> Edit(int Id, [Bind("Id,Title,Director,Genre,ReleaseYear,PosterPath,Description")] Movie movie, IFormFile? uploadedFile)
+        ////public async Task<IActionResult> Edit(int Id, [Bind("Id,Title,Director,Genre,ReleaseYear,Description")] Movie movie)
+        //{
+        //    //var existingMovieById = await _repository.GetById((int)Id);
+
+
+
+        //    //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before movie: {movie.PosterPath}");
+        //    //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie {movie.Id} {movie.Title} {movie.Director} {movie.Description} {movie.PosterPath}");            
+        //    //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before existingMovieById {existingMovieById.PosterPath}");
+        //    //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie {existingMovieById.Id} {existingMovieById.Title} {existingMovieById.Director} {existingMovieById.Description} {existingMovieById.PosterPath}");
+        //    //Console.WriteLine($"!!!!!!!!!!!!!! movie path before {existingPoster}");
+        //    //Console.WriteLine($"!!!!!!!!!!!!!! movie path before {movie.PosterPath}");
+        //    //Console.WriteLine($"!!!!!!!!!!!!!! movie path before {uploadedFile.Name}");
+
+        //    if (Id != movie.Id)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return View(movie);
+        //    }
+
+        //    try
+        //    {
+        //        if (ModelState.IsValid)
+        //        {
+        //            if (uploadedFile != null && uploadedFile.Length > 0)
+        //            {
+
+        //                // Путь к папке, где будут храниться изображения
+        //                string uploadedFolder = Path.Combine(_webHostEnvironment.WebRootPath, "Image");
+
+        //                // Генерируем новое уникальное имя файла для изображения
+        //                string newFileNameGenerated = Guid.NewGuid().ToString() + "_" + uploadedFile.FileName;
+
+        //                // Полный путь к файлу на сервере
+        //                string filePath = Path.Combine(uploadedFolder, newFileNameGenerated);
+
+
+        //                // Сохраняем файл на сервере
+        //                using (var fileStream = new FileStream(filePath, FileMode.Create))
+        //                {
+        //                    // Load the image
+        //                    using (var image = await Image.LoadAsync(uploadedFile.OpenReadStream()))
+        //                    {
+        //                        // Resize the image to a maximum width and height of 800px
+        //                        image.Mutate(x => x.Resize(new ResizeOptions
+        //                        {
+        //                            Mode = ResizeMode.Max,
+        //                            Size = new Size(600, 600)
+        //                            //Size = new Size(image.Width, image.Height)
+        //                        }));
+
+        //                        await image.SaveAsPngAsync(fileStream);
+        //                    }
+
+        //                    await uploadedFile.CopyToAsync(fileStream);
+        //                }
+
+        //                // Устанавливаем путь к изображению в объекте фильма
+        //                movie.PosterPath = "/Image/" + newFileNameGenerated;
+
+        //                //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before in if {movie.PosterPath}");
+        //                //await Console.Out.WriteLineAsync($"movie {movie.Id} {movie.Title} {movie.Director} {movie.Description} {movie.PosterPath}");
+        //            }
+        //            else
+        //            {
+
+
+        //                // Если изображение не было загружено, сохраняем существующий путь к изображению
+        //                var existingMovie = await _repository.GetById(Id);
+
+        //                movie.PosterPath = existingMovie.PosterPath;
+
+
+
+
+        //                //movie.PosterPath = "/Image/" + movie.PosterPath;
+
+        //                //movie.PosterPath = "/Image/" + existingMovieById.PosterPath;
+        //                //await Console.Out.WriteLineAsync($"!!!!!!!!!!!!!! movie path before in else {movie.PosterPath}");
+        //                //await Console.Out.WriteLineAsync($"movie {movie.Id} {movie.Title} {movie.Director} {movie.Description} {movie.PosterPath}");
+        //            }
+
+        //            // Добавляем фильм в репозиторий
+        //            _repository.Update(movie);
+
+        //            // Сохраняем изменения в базе данных
+        //            await _repository.Save();
+
+        //            return RedirectToAction("Index", "Movie");
+
+        //        }
+
+        //    }
+        //    catch (DbUpdateConcurrencyException)
+        //    {
+        //        if (!await MovieExists(movie.Id))
+        //        {
+        //            return NotFound();
+        //        }
+        //        else
+        //        {
+        //            throw;
+        //        }
+        //    }
+
+        //    return View(movie);
+        //}
+
+
+
+
 
 
 
@@ -702,5 +823,7 @@ namespace Movies.Controllers
         //    // Возвращение представления Index
         //    return View();
         //}
+
+        
     }
 }
