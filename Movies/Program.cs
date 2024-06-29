@@ -18,7 +18,7 @@ builder.Services.AddScoped<IRepository<Movie>,MovieRepository>();
 
 var app = builder.Build();
 
-app.UseStaticFiles(); // обрабатывает запросы к файлам в папке wwwroot
+app.UseStaticFiles(); 
 
 app.MapControllerRoute(
     name: "default",
